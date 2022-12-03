@@ -2,6 +2,11 @@
 
 Frontend repository for FIT CTU course NI-VMM project demonstrating SIFT (Scale-invariant feature transform) algorithm.
 
+## Requirements
+
+- Node.js
+- yarn or npm
+
 ## Nuxt 3 Minimal Starter
 
 Look at the [nuxt 3 documentation](https://v3.nuxtjs.org) to learn more.
