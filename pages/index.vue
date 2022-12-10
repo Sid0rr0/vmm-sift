@@ -5,26 +5,53 @@
     </h1>
 
     <form enctype="multipart/form-data" method="post" name="fileinfo" class="mt-3 w-6/12" @submit.prevent="sendForm">
-      <p class="my-4">
+      <p class="my-3">
         <label>Select your image:
           <input id="fileInput" type="file" name="file" required>
         </label>
       </p>
 
-      <p class="my-4">
+      <p class="my-3">
         <label>Number of pictures to return:
-          <input v-model="knn" type="number" name="knn" required class="border-2 p-1">
+          <input
+            v-model="knn"
+            type="number"
+            name="knn"
+            min="0"
+            required
+            class="border-2 p-1"
+          >
         </label>
       </p>
 
-      <p class="my-4">
-        <label>Lowest number of matches:
-          <input v-model="matches" type="number" name="matches" required class="border-2 p-1">
+      <p class="my-3">
+        <label>Maximum number of best features to retain (0 means Unlimited):
+          <input
+            v-model="maxDescritptors"
+            min="0"
+            type="number"
+            name="knn"
+            required
+            class="border-2 p-1"
+          >
         </label>
       </p>
 
-      <p class="my-4">
-        <label>Ratio test:
+      <p class="my-3">
+        <label>Lowest number of matching features:
+          <input
+            v-model="matches"
+            type="number"
+            name="matches"
+            min="1"
+            required
+            class="border-2 p-1"
+          >
+        </label>
+      </p>
+
+      <p class="my-3">
+        <label>Lowe's Ratio test constant:
           <input
             v-model="ratio"
             type="number"
@@ -38,7 +65,17 @@
         </label>
       </p>
 
-      <p class="my-4">
+      <p class="my-3">
+        <label>Show image comparisons:
+          <input
+            v-model="showComparisons"
+            type="checkbox"
+            name="ratio"
+            class="border-2 p-1"
+          ></label>
+      </p>
+
+      <p class="my-3">
         <input type="submit" value="Find" class="border-2 py-1 px-5 rounded-full bg-blue-200">
       </p>
     </form>
@@ -47,7 +84,7 @@
       <div /><div /><div /><div /><div /><div /><div /><div /><div /><div /><div /><div />
     </div>
 
-    <div v-if="(data && !loading)" class="flex flex-row">
+    <div v-if="(data && !loading)" class="flex flex-row flex-wrap m-4">
       <div class="border-2 mr-2">
         <span>Input image</span>
         <img class="block w-12/12 max-w-sm object-cover" :src="('http://127.0.0.1:8000/testImg/' + testImg)" alt="">
@@ -57,21 +94,33 @@
         <img class="block w-12/12 max-w-sm object-cover" :src="('http://127.0.0.1:8000/img/' + img[0])" alt="">
       </div>
     </div>
+
+    <div v-if="(data && !loading && showComparisons)" class="flex flex-col">
+      <h2 class="text-2xl m-5">
+        Comparisons:
+      </h2>
+      <div v-for="i in fileCnt" :key="i">
+        <img class="block w-12/12 max-w-xl object-cover" :src="('http://127.0.0.1:8000/results/a' + (i - 1))" alt="">
+      </div>
+    </div>
   </main>
 </template>
 
 <script setup lang="ts">
 const knn = ref(3)
-const matches = ref(5)
+const matches = ref(10)
 const ratio = ref(0.7)
+const maxDescritptors = ref(0)
 const loading = ref(false)
+const showComparisons = ref(false)
 const data = ref(null)
 const testImg = ref(null)
+const fileCnt = ref(0)
 
 async function sendForm () {
   loading.value = true
   const formData = new FormData(document.forms.namedItem("fileinfo"))
-  const res = await fetch(`http://127.0.0.1:8000/uploadfile/?ratio=${ratio.value}&matches=${matches.value}`, {
+  const res = await fetch(`http://127.0.0.1:8000/uploadfile/?ratio=${ratio.value}&maxDescritptors=${maxDescritptors.value}`, {
     method: "POST", body: formData
   })
 
@@ -80,7 +129,8 @@ async function sendForm () {
   testImg.value = fileName.split(".")[0]
 
   const response = await res.json()
-  data.value = response.data.reverse().slice(0, knn.value)
+  fileCnt.value = response.data.length
+  data.value = response.data.reverse().slice(0, knn.value).filter(res => +res[1] >= matches.value)
   loading.value = false
 }
 
