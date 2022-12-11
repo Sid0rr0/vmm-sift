@@ -165,14 +165,16 @@ function displayTimer () {
 async function sendForm () {
   startTimer()
   loading.value = true
-  const formData = new FormData(document.forms.namedItem("fileinfo"))
+  const formData = new FormData(document.forms.namedItem("fileinfo") as HTMLFormElement)
   const res = await fetch(`http://127.0.0.1:8000/uploadfile/?ratio=${ratio.value}&maxDescritptors=${maxDescritptors.value}`, {
     method: "POST", body: formData
   })
 
   const fileInput = document.getElementById("fileInput") as HTMLInputElement
-  const fileName = fileInput.files![0].name
-  testImg.value = fileName.split(".")[0]
+  if (fileInput.files) {
+    const fileName = fileInput.files[0].name
+    testImg.value = fileName.split(".")[0]
+  }
 
   const response = await res.json()
   fileCnt.value = response.data.length
