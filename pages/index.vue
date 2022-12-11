@@ -8,6 +8,7 @@
       <p class="my-3">
         <label>Select your image:
           <input id="fileInput" type="file" name="file" required>
+          <!-- <input id="fileInput" type="file" name="file"> -->
         </label>
       </p>
 
@@ -75,9 +76,12 @@
           ></label>
       </p>
 
-      <p class="my-3">
-        <input type="submit" value="Find" class="border-2 py-1 px-5 rounded-full bg-blue-200">
-      </p>
+      <div class="my-3 flex justify-between">
+        <input :disabled="loading" type="submit" value="Find" class="border-2 py-1 px-5 rounded-full bg-blue-200">
+        <div>
+          <span>{{ timeStr }}</span>
+        </div>
+      </div>
     </form>
 
     <div v-if="loading" class="lds-spinner">
@@ -107,6 +111,8 @@
 </template>
 
 <script setup lang="ts">
+import { Ref } from "@vue/reactivity"
+
 const knn = ref(3)
 const matches = ref(10)
 const ratio = ref(0.7)
@@ -114,23 +120,64 @@ const maxDescritptors = ref(0)
 const loading = ref(false)
 const showComparisons = ref(false)
 const data = ref(null)
-const testImg = ref(null)
+const testImg = ref("")
 const fileCnt = ref(0)
 
+const timer: Ref<NodeJS.Timer | null> = ref(null)
+const milliseconds = ref(0)
+const timeStr = ref("")
+const seconds = ref(0)
+const minutes = ref(0)
+
+function stopTimer () {
+  if (timer.value) {
+    clearInterval(timer.value)
+  }
+}
+function startTimer () {
+  if (timer.value) {
+    clearInterval(timer.value)
+    milliseconds.value = 0
+    seconds.value = 0
+    minutes.value = 0
+  }
+  timer.value = setInterval(displayTimer, 10)
+}
+
+function displayTimer () {
+  milliseconds.value += 10
+  if (milliseconds.value === 1000) {
+    milliseconds.value = 0
+    seconds.value++
+    if (seconds.value === 60) {
+      seconds.value = 0
+      minutes.value++
+    }
+  }
+
+  const m = minutes.value < 10 ? "0" + minutes.value : minutes.value
+  const s = seconds.value < 10 ? "0" + seconds.value : seconds.value
+  const ms = milliseconds.value < 10 ? "00" + milliseconds.value : milliseconds.value < 100 ? "0" + milliseconds.value : milliseconds.value
+
+  timeStr.value = `${m > 0 ? m + " : " : ""} ${s} : ${ms}`
+}
+
 async function sendForm () {
+  startTimer()
   loading.value = true
   const formData = new FormData(document.forms.namedItem("fileinfo"))
   const res = await fetch(`http://127.0.0.1:8000/uploadfile/?ratio=${ratio.value}&maxDescritptors=${maxDescritptors.value}`, {
     method: "POST", body: formData
   })
 
-  const fileInput = document.getElementById("fileInput")
-  const fileName = fileInput.files[0].name
+  const fileInput = document.getElementById("fileInput") as HTMLInputElement
+  const fileName = fileInput.files![0].name
   testImg.value = fileName.split(".")[0]
 
   const response = await res.json()
   fileCnt.value = response.data.length
   data.value = response.data.reverse().slice(0, knn.value).filter(res => +res[1] >= matches.value)
+  stopTimer()
   loading.value = false
 }
 
